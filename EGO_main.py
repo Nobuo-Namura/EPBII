@@ -39,7 +39,7 @@ if __name__ == "__main__":
     func_name = 'ZDT3'        # Test problem name in test_problem.py
     nx = 8                    # Number of design variables (>=1)
     nf = 2                    # Number of objective functions (>=2)
-    nh = 20                   # Division number for reference vector generation on hyper plane (recommended: 100, 20, and 10 for 2, 3, and 4 objectives, respectively)
+    nh = 100                  # Division number for reference vector generation on hyper plane (recommended: 100, 20, and 10 for 2, 3, and 4 objectives, respectively)
     nhin = 0                  # Division number for reference vector generation on inner hyper plane (>=0)
     n_add = 5                 # Number of additional sample points at each iteration (>=1)
     max_iter = 5              # Number of EGO iteration (>=1)
