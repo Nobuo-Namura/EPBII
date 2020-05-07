@@ -37,19 +37,19 @@ if __name__ == "__main__":
     
     """=== Edit from here ==========================================="""
     func_name = 'ZDT3'        # Test problem name in test_problem.py
-    nx = 8                    # Number of design variables
-    nf = 2                    # Number of objective functions
-    nh = 100                  # Division number for reference vector generation on hyper plane 
-    nhin = 0                  # Division number for reference vector generation on inner hyper plane
-    n_add = 5                 # Number of additional sample points at each iteration 
-    max_iter = 5              # Number of EGO iteration
-    ntrial = 1                # Number of independent run with different initial samples
+    nx = 8                    # Number of design variables (>=1)
+    nf = 2                    # Number of objective functions (>=2)
+    nh = 20                   # Division number for reference vector generation on hyper plane (recommended: 100, 20, and 10 for 2, 3, and 4 objectives, respectively)
+    nhin = 0                  # Division number for reference vector generation on inner hyper plane (>=0)
+    n_add = 5                 # Number of additional sample points at each iteration (>=1)
+    max_iter = 5              # Number of EGO iteration (>=1)
+    ntrial = 1                # Number of independent run with different initial samples (>=1)
     CRITERIA = 'EPBII'        # EPBII or EIPBII
-    MIN = np.full(nf,True)    # Minimization: True, Maximization: False
+    MIN = np.full(nf,True)    # True=Minimization, False=Maximization
     NOISE = np.full(nf,False) # Use True if functions are noisy (Griewank, Rastrigin, DTLZ1, etc.)
     PLOT = True               # True=Plot the results
     GENE = True               # True=Generate initial sample with LHS, False=Read files
-    ns = nx*11-1              # Number of initial sample points when GENE=True
+    ns = nx*11-1              # Number of initial sample points when GENE=True (>=2)
     xmin = np.full(nx, 0.0)   # Lower bound of design sapce
     xmax = np.full(nx, 1.0)   # Upper bound of design sapce
     current_dir = '.'
@@ -59,6 +59,7 @@ if __name__ == "__main__":
     path_IGD_ref = current_dir + '/IGD_ref'
     """=== Edit End ================================================="""
     
+    #Initial sample
     problem = functools.partial(eval('test_problem.'+func_name), nf=nf)
     if GENE:
         generate_initial_sample(func_name, nx, nf, ns, ntrial, xmin, xmax, current_dir, fname_design_space, fname_sample)
@@ -66,8 +67,7 @@ if __name__ == "__main__":
     igd_ref = np.loadtxt(path_IGD_ref + '/' + func_name + 'f' + str(nf) + '.csv', delimiter=',')
     gp = Kriging(MIN=MIN, CRITERIA=CRITERIA, n_add=n_add, pbi_theta=1.0, nh=nh, nhin=nhin)
     
-    rmse_trial = []
-    optimum_trial = []
+    #Preprocess for RMSE
     if nx == 2:
         ndiv = 101
         x_rmse0 = np.zeros([ndiv**2, nx])
@@ -78,15 +78,14 @@ if __name__ == "__main__":
     else:
         x_rmse0 = np.random.uniform(size=[10000, nx])
 
+    #Independent run
     print('EGO')
     for itrial in range(1,ntrial+1,1):
+        #Preprocess
         print('trial '+ str(itrial))
         f_sample = current_dir + '/' + fname_sample + str(itrial) + '.csv'
         gp.read_sample(f_sample)
         gp.normalize_x(f_design_space)
-        
-        ns_init = gp.ns
-        threshold = 1.0e-8*np.linalg.norm(gp.xmax-gp.xmin)/np.sqrt(float(gp.nx))
         x_rmse = gp.xmin + (gp.xmax-gp.xmin)*x_rmse0
         rmse = np.zeros([max_iter, gp.nf + gp.ng])
         igd = np.zeros(max_iter+1)
@@ -103,15 +102,18 @@ if __name__ == "__main__":
         f_sample_out =  current_dir + '/' + fname_sample + str(itrial) + '_out.csv'
         shutil.copyfile(f_sample, f_sample_out)
         
+        #Main loop for EGO
         for itr in range(max_iter):
             try:
                 times.append(time.time())
                 print('=== Iteration = '+str(itr)+', Number of sample = '+str(gp.ns)+' ======================')
+                
+                #Kriging and infill criterion
                 gp.kriging_training(theta0 = 3.0, npop = 500, ngen = 500, mingen=0, STOP=True, NOISE=NOISE)
                 x_add = gp.kriging_infill(PLOT=False)
                 times.append(time.time())
 
-                #rmse
+                #RMSE
                 for ifg in range(gp.nf + gp.ng):
                     gp.nfg = ifg
                     rmse[itr, ifg] = indicator.rmse_history(x_rmse, problem, gp.kriging_f, ifg)
@@ -137,7 +139,7 @@ if __name__ == "__main__":
                         data = np.array([itr+1, gp.ns, 0.0, igd[itr+1]])
                         np.savetxt(file, data.reshape([1,len(data)]), delimiter=',')
                 
-                #visualization
+                #Visualization
                 if PLOT:
                     rank = gp.pareto_ranking(gp.f, gp.g)
                     f_pareto = gp.f[rank==1.0]

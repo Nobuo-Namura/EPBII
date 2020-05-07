@@ -362,7 +362,6 @@ class Kriging:
             nearest = np.zeros(len(f_opt0), dtype=int)
             for i in range(len(f_opt0)):
                 distmin = 1.0e+20
-#                    for j in range(i+1, len(f_opt0)):
                 for j in range(len(f_opt0)):
                     dist = np.linalg.norm(f_opt0[i,:] - f_opt0[j,:])
                     if i!=j and dist < distmin:
