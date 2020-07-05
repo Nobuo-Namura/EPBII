@@ -129,8 +129,6 @@ if __name__ == "__main__":
                     np.savetxt(file, data.reshape([1,len(data)]), delimiter=',')
                 with open(f_sample_out, 'a') as file:
                     data = np.hstack([gp.x[-gp.n_add:,:], gp.f[-gp.n_add:,:], gp.g[-gp.n_add:,:]])
-                    if gp.n_add < 2:
-                        data = data.reshape([1,len(data)])
                     np.savetxt(file, data, delimiter=',')
                 rank = gp.pareto_ranking(gp.f, gp.g)
                 igd[itr+1] = indicator.igd_history(gp.f[rank==1.0], igd_ref)
